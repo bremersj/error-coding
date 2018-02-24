@@ -7,36 +7,49 @@ Created on Sat Nov 11 22:28:15 2017
 A class to implement certain linear algebra operations over GF(2).
 """
 
-def bitwise_XOR(a, b):
-    bitstream = ''
-    for i in range(0, len(a)):
-        bitstream += str(int(a[i], 2) ^ int(b[i], 2))
-    return bitstream
+def row_swap(matrix, to_index, fm_index):
+    row = matrix.pop(fm_index)
+    matrix.insert(to_index, row)
 
-def min_row_pivot(matrix, col, used):
-    pivots = len(matrix[0])
-    for i in range(0, pivots):
-        if (matrix[i][col] == '1') and (used[i] != 1):
-            used[i] = 1
-            return i
-    return -1
+def xor(a,b):
+    assert len(a) == len(b)
+    result = ''
+    for i in range(len(a)):
+        if a[i] == b[i]:
+            result += '0'
+        else:
+            result += '1'
+    return result
 
-def gauss_elim_gf2(matrix):
-    num_col = len(matrix[0])
-    num_row = len(matrix)
-    pivot_matrix = ['']*num_col
-    used = [0]*(num_col+1)
+def reduce(matrix, index):
+    comp = matrix[index]
+    for i, line in enumerate(matrix):
+        if (index != i):
+            if line[index] == '1':
+                matrix[i] = xor(line, comp)
+
+def find_rref(matrix):
+    """ Calculates the reduced row echelon form of a matrix over a binary
+    Galois field.
+    Arg: A list of binary strings representing the matrix. For example, 
+    ['1001', '1101', '1000'] would represent the following matrix:
+        1001
+        1101
+        1000
+    Returns: A list of binary strings reprenting the RREF matrix.
+    """
+    num_pivots = len(matrix[0])
     
-    for j in range(0, num_col):
-        row = min_row_pivot(matrix, j, used)
-
-        if (row != -1):
-            pivot_matrix[j] = matrix[row]
-            for i in range(0, num_row):
-                if i != row:
-                    if (matrix[i][j] == '1'):
-                        trow = bitwise_XOR(matrix[row], matrix[i])
-                        matrix[i] = trow
+    for i in range(0, num_pivots):
+        for j in range(i+1, len(matrix)):
+            if matrix[j][i] == '1':
+                row_swap(matrix, i, j)
+                reduce(matrix, i)
+                break
+    for line in matrix:
+        if '1' in line:
+            print(line)
+        
     return matrix
 
 class GF2Matrix:
@@ -53,7 +66,10 @@ class GF2Matrix:
         self.data = data
 
     def __str__(self):
-        return str([row for row in self.data])
+        return '\n'.join([row for row in self.data])
+    
+    def __repr__(self):
+        return '\n'.join([row for row in self.data])
 
     def __mul__(self, other):
         #Check that operation is valid
@@ -138,7 +154,12 @@ class GF2Matrix:
             print(row)
 
     def rref(self):
-        rref = gauss_elim_gf2(self.data[:])
+        rref = find_rref(self.data[:])
         rref.sort(reverse=True)
         return rref
 
+if __name__ == '__main__':
+    A = GF2Matrix(['11001', '01101', '11000', '01001', '00011', '00010', '11000'])
+    print(A)
+    Arref = GF2Matrix(A.rref())
+    print(Arref)
